@@ -4558,6 +4558,34 @@ let serveTests = {
     }
   },
 
+  async serveDisableRebuildOnRequest({ esbuild, testDir }) {
+    const input = path.join(testDir, 'in.js')
+    await writeFileAsync(input, `console.log(1)`)
+
+    const context = await esbuild.context({
+      entryPoints: [input],
+      outdir: testDir,
+      write: false,
+    })
+    try {
+      const server = await context.serve({
+        host: '127.0.0.1',
+        disableRebuildOnRequest: true,
+      })
+      await context.rebuild()
+
+      assert.strictEqual((await fetch(server.hosts[0], server.port, '/in.js')).toString(), `console.log(1);\n`)
+
+      await writeFileAsync(input, `console.log(2)`)
+      assert.strictEqual((await fetch(server.hosts[0], server.port, '/in.js')).toString(), `console.log(1);\n`)
+
+      await context.rebuild()
+      assert.strictEqual((await fetch(server.hosts[0], server.port, '/in.js')).toString(), `console.log(2);\n`)
+    } finally {
+      await context.dispose()
+    }
+  },
+
   async serveBasicHTTPS({ esbuild, testDir }) {
     const run = command => new Promise((resolve, reject) => {
       child_process.execFile(command.shift(), command, (error, stdout, stderr) => {

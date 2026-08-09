@@ -1091,6 +1091,7 @@ function buildOrContextImpl(
           const fallback = getFlag(options, keys, 'fallback', mustBeString)
           const cors = getFlag(options, keys, 'cors', mustBeObject)
           const onRequest = getFlag(options, keys, 'onRequest', mustBeFunction)
+          const disableRebuildOnRequest = getFlag(options, keys, 'disableRebuildOnRequest', mustBeBoolean)
           checkForInvalidFlags(options, keys, `in serve() call`)
 
           const request: protocol.ServeRequest = {
@@ -1104,6 +1105,7 @@ function buildOrContextImpl(
           if (keyfile !== void 0) request.keyfile = keyfile
           if (certfile !== void 0) request.certfile = certfile
           if (fallback !== void 0) request.fallback = fallback
+          if (disableRebuildOnRequest !== void 0) request.disableRebuildOnRequest = disableRebuildOnRequest
 
           if (cors) {
             const corsKeys: OptionKeys = {}

@@ -396,6 +396,9 @@ func (service *serviceType) handleIncomingPacket(bytes []byte) {
 					if value, ok := request["fallback"]; ok {
 						options.Fallback = value.(string)
 					}
+					if value, ok := request["disableRebuildOnRequest"]; ok {
+						options.DisableRebuildOnRequest = value.(bool)
+					}
 					if value, ok := request["corsOrigin"].([]interface{}); ok {
 						for _, it := range value {
 							options.CORS.Origin = append(options.CORS.Origin, it.(string))

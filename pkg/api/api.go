@@ -492,14 +492,15 @@ func Transform(input string, options TransformOptions) TransformResult {
 
 // Documentation: https://esbuild.github.io/api/#serve-arguments
 type ServeOptions struct {
-	Port      int
-	Host      string
-	Servedir  string
-	Keyfile   string
-	Certfile  string
-	Fallback  string
-	CORS      CORSOptions
-	OnRequest func(ServeOnRequestArgs)
+	Port                    int
+	Host                    string
+	Servedir                string
+	Keyfile                 string
+	Certfile                string
+	Fallback                string
+	CORS                    CORSOptions
+	OnRequest               func(ServeOnRequestArgs)
+	DisableRebuildOnRequest bool
 }
 
 // Documentation: https://esbuild.github.io/api/#cors

@@ -37,23 +37,25 @@ import (
 // Serve API
 
 type apiHandler struct {
-	onRequest        func(ServeOnRequestArgs)
-	rebuild          func() BuildResult
-	stop             func()
-	fs               fs.FS
-	absOutputDir     string
-	outdirPathPrefix string
-	publicPath       string
-	servedir         string
-	keyfileToLower   string
-	certfileToLower  string
-	fallback         string
-	hosts            []string
-	corsOrigin       []string
-	serveWaitGroup   sync.WaitGroup
-	activeStreams    []chan serverSentEvent
-	currentHashes    map[string]string
-	mutex            sync.Mutex
+	onRequest               func(ServeOnRequestArgs)
+	rebuild                 func() BuildResult
+	stop                    func()
+	fs                      fs.FS
+	absOutputDir            string
+	outdirPathPrefix        string
+	publicPath              string
+	servedir                string
+	keyfileToLower          string
+	certfileToLower         string
+	fallback                string
+	hosts                   []string
+	corsOrigin              []string
+	serveWaitGroup          sync.WaitGroup
+	activeStreams           []chan serverSentEvent
+	currentHashes           map[string]string
+	disableRebuildOnRequest bool
+	lastBuildResult         BuildResult
+	mutex                   sync.Mutex
 }
 
 type serverSentEvent struct {
@@ -171,7 +173,14 @@ func (h *apiHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	// Handle GET and HEAD requests
 	if (isHEAD || req.Method == "GET") && strings.HasPrefix(req.URL.Path, "/") {
 		queryPath := path.Clean(req.URL.Path)[1:]
-		result := h.rebuild()
+		var result BuildResult
+		if h.disableRebuildOnRequest {
+			h.mutex.Lock()
+			result = h.lastBuildResult
+			h.mutex.Unlock()
+		} else {
+			result = h.rebuild()
+		}
 
 		// Requests fail if the build had errors
 		if len(result.Errors) > 0 {
@@ -490,6 +499,7 @@ func (h *apiHandler) serveEventStream(start time.Time, req *http.Request, res ht
 
 func (h *apiHandler) broadcastBuildResult(result BuildResult, newHashes map[string]string) {
 	h.mutex.Lock()
+	h.lastBuildResult = result
 
 	var added []string
 	var removed []string
@@ -917,16 +927,17 @@ func (ctx *internalContext) Serve(serveOptions ServeOptions) (ServeResult, error
 
 	// The first build will just build normally
 	handler := &apiHandler{
-		onRequest:        serveOptions.OnRequest,
-		outdirPathPrefix: outdirPathPrefix,
-		absOutputDir:     ctx.args.options.AbsOutputDir,
-		publicPath:       ctx.args.options.PublicPath,
-		servedir:         serveOptions.Servedir,
-		keyfileToLower:   strings.ToLower(serveOptions.Keyfile),
-		certfileToLower:  strings.ToLower(serveOptions.Certfile),
-		fallback:         serveOptions.Fallback,
-		hosts:            append([]string{}, result.Hosts...),
-		corsOrigin:       append([]string{}, serveOptions.CORS.Origin...),
+		onRequest:               serveOptions.OnRequest,
+		disableRebuildOnRequest: serveOptions.DisableRebuildOnRequest,
+		outdirPathPrefix:        outdirPathPrefix,
+		absOutputDir:            ctx.args.options.AbsOutputDir,
+		publicPath:              ctx.args.options.PublicPath,
+		servedir:                serveOptions.Servedir,
+		keyfileToLower:          strings.ToLower(serveOptions.Keyfile),
+		certfileToLower:         strings.ToLower(serveOptions.Certfile),
+		fallback:                serveOptions.Fallback,
+		hosts:                   append([]string{}, result.Hosts...),
+		corsOrigin:              append([]string{}, serveOptions.CORS.Origin...),
 		rebuild: func() BuildResult {
 			if atomic.LoadInt32(&shouldStop) != 0 {
 				// Don't start more rebuilds if we were told to stop

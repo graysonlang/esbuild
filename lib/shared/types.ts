@@ -249,6 +249,7 @@ export interface ServeOptions {
   fallback?: string
   cors?: CORSOptions
   onRequest?: (args: ServeOnRequestArgs) => void
+  disableRebuildOnRequest?: boolean
 }
 
 /** Documentation: https://esbuild.github.io/api/#cors */

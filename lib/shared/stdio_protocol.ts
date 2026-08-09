@@ -25,6 +25,7 @@ export interface ServeRequest {
   command: 'serve'
   key: number
   onRequest: boolean
+  disableRebuildOnRequest?: boolean
   port?: number
   host?: string
   servedir?: string
